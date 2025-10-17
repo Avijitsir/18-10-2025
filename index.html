@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group-based study planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%; max-width: 900px; margin: 0 auto;
+            background-color: #ffffff; border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); padding: 20px;
+        }
+        h1, h2 { text-align: center; color: #333; }
+        h1 { font-size: 26px; }
+
+        /* --- Group Selection --- */
+        #group-selection .group-button {
+            display: block; width: 100%; padding: 15px; margin: 10px 0;
+            font-size: 18px; font-weight: 600; color: #fff;
+            background-image: linear-gradient(45deg, #007BFF, #0056b3);
+            border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
+        }
+        #group-selection .group-button:hover {
+            transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+        }
+
+        /* --- Calendar View --- */
+        #schedule-view { display: none; }
+        .back-button {
+            background-color: #6c757d; color: white; border: none;
+            padding: 8px 16px; border-radius: 5px; font-size: 16px; cursor: pointer;
+        }
+        .strategy-button {
+            display: block; width: 100%; margin: 20px 0 10px 0;
+            background-color: #28a745; color: white; padding: 12px;
+            font-size: 16px; font-weight: 600; border: none;
+            border-radius: 8px; cursor: pointer;
+        }
+        
+        /* Calendar Styles */
+        .month-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 20px 0;
+        }
+        .month-header button {
+            background-color: #007BFF; color: white; border: none;
+            padding: 8px 14px; border-radius: 5px; font-size: 18px; cursor: pointer;
+        }
+        #current-month-year { font-size: 22px; font-weight: 600; color: #0056b3;}
+
+        #calendar-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;
+        }
+        .day-name { font-weight: 700; background-color: #e9ecef; text-align: center; padding: 10px; border-radius: 6px;}
+        .calendar-day {
+            min-height: 70px; background-color: #f8f9fa; border: 1px solid #dee2e6;
+            display: flex; flex-direction: column; justify-content: flex-start;
+            align-items: center; transition: background-color 0.2s; padding: 5px;
+            border-radius: 6px;
+        }
+        .calendar-day.empty { background-color: transparent; border: none; }
+        .calendar-day.today { border: 2px solid #007BFF; }
+        .calendar-day.has-event { cursor: pointer; }
+        .calendar-day.future-event { background-color: #e7f3ff; color: #0056b3; }
+        .calendar-day.past-event {
+            background-color: #e9f7ef;
+            color: #155724;
+        }
+        .calendar-day.past-event::after {
+            content: '✔'; color: #28a745; font-size: 18px; margin-top: auto;
+        }
+
+        /* --- Strategy Modal --- */
+        .modal {
+            display: none; position: fixed; z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe; margin: 5% auto; padding: 25px;
+            border: 1px solid #888; width: 90%; max-width: 700px;
+            border-radius: 10px; position: relative;
+        }
+        .close-button {
+            color: #aaa; position: absolute; top: 10px; right: 20px;
+            font-size: 28px; font-weight: bold; cursor: pointer;
+        }
+        .strategy-content h3 { color: #0056b3; border-bottom: 2px solid #007BFF; padding-bottom: 5px; }
+        .strategy-content ul { list-style-type: '✓  '; padding-left: 20px; }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 22px; }
+            #current-month-year { font-size: 18px; }
+            .day-name { font-size: 12px; padding: 8px 2px; }
+            .calendar-day { min-height: 50px; }
+            .modal-content { margin: 10% auto; padding: 20px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="group-selection">
+            <h1>আপনার গ্রুপ বেছে নিন</h1>
+        </div>
+
+        <div id="schedule-view">
+            <button class="back-button" onclick="showGroupSelection()">&larr; পিছনে যান</button>
+            <h2 id="group-title"></h2>
+            <button class="strategy-button" onclick="openStrategyModal()">সম্পূর্ণ বছরের স্ট্র্যাটেজি দেখুন</button>
+
+            <div class="month-header">
+                <button id="prev-month">&laquo; আগের মাস</button>
+                <span id="current-month-year"></span>
+                <button id="next-month">পরের মাস &raquo;</button>
+            </div>
+            <div id="calendar-grid"></div>
+        </div>
+    </div>
+
+    <div id="strategy-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeStrategyModal()">&times;</span>
+            <h2 id="strategy-modal-title">বার্ষিক প্রস্তুতি স্ট্র্যাটেজি</h2>
+            <div id="strategy-content-container"></div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- ডেটা সেকশন ---
+
+        // ১. প্রতিটি গ্রুপের জন্য ক্লাসের সময়সূচী। শুধু "বিষয়..." লেখাটি পরিবর্তন করে নিজের টপিক বসান।
+        const scheduleData = {
+            "The Study Circle": [
+                // October 2025
+                { date: "2025-10-18", topic: "✅ _*শনিবার এর পড়া*_\n\n📚প্রাচীনকালের ইতিহাস- গুপ্ত সাম্রাজ্য\n♻️ভারতের ভূগোল- ভারতের স্বাভাবিক উদ্ভিদ\n♻️Reasoaning- Sitting Arrangement\n♻️অঙ্ক- সরল সুদ" },
+                { date: "2025-10-21", topic: "বিষয়..." },
+                { date: "2025-10-23", topic: "বিষয়..." },
+                { date: "2025-10-25", topic: "বিষয়..." },
+                { date: "2025-10-28", topic: "বিষয়..." },
+                { date: "2025-10-30", topic: "বিষয়..." },
+                // November 2025
+                { date: "2025-11-01", topic: "বিষয়..." },
+                { date: "2025-11-04", topic: "বিষয়..." },
+                { date: "2025-11-06", topic: "বিষয়..." },
+                { date: "2025-11-08", topic: "বিষয়..." },
+                { date: "2025-11-11", topic: "বিষয়..." },
+                { date: "2025-11-13", topic: "বিষয়..." },
+                { date: "2025-11-15", topic: "বিষয়..." },
+                { date: "2025-11-18", topic: "বিষয়..." },
+                { date: "2025-11-20", topic: "বিষয়..." },
+                { date: "2025-11-22", topic: "বিষয়..." },
+                { date: "2025-11-25", topic: "বিষয়..." },
+                { date: "2025-11-27", topic: "বিষয়..." },
+                { date: "2025-11-29", topic: "বিষয়..." },
+                // December 2025
+                { date: "2025-12-02", topic: "বিষয়..." },
+                { date: "2025-12-04", topic: "বিষয়..." },
+                { date: "2025-12-06", topic: "বিষয়..." },
+                { date: "2025-12-09", topic: "বিষয়..." },
+                { date: "2025-12-11", topic: "বিষয়..." },
+                { date: "2025-12-13", topic: "বিষয়..." },
+                { date: "2025-12-16", topic: "বিষয়..." },
+                { date: "2025-12-18", topic: "বিষয়..." },
+                { date: "2025-12-20", topic: "বিষয়..." },
+                { date: "2025-12-23", topic: "বিষয়..." },
+                { date: "2025-12-25", topic: "বিষয়..." },
+                { date: "2025-12-27", topic: "বিষয়..." },
+                { date: "2025-12-30", topic: "বিষয়..." }
+            ],
+            "সাফল্যের সিঁড়ি": [
+                // October 2025
+                { date: "2025-10-18", topic: "✅ _*শনিবার এর পড়া*_\n\n📚নিতীশ ঘোষ ➡️\n♻️ *পশ্চিমবঙ্গের ভূগোল*\n👉 পশ্চিমবঙ্গের কৃষিকাজ ও জলসেচ\n♻️ *ভারতের ইতিহাস ও স্বাধীনতা সংগ্রাম*\n👉 স্বদেশী আন্দোলন,চরমপন্থি পর্ব ও বিপ্লবী কার্যকলাপ\n📚500+ pdf\n👉 question (1-200)\n👉 Mock Test" },
+                { date: "2025-10-21", topic: "বিষয়..." },
+                { date: "2025-10-23", topic: "বিষয়..." },
+                { date: "2025-10-25", topic: "বিষয়..." },
+                { date: "2025-10-28", topic: "বিষয়..." },
+                { date: "2025-10-30", topic: "বিষয়..." },
+                // November 2025
+                { date: "2025-11-01", topic: "বিষয়..." },
+                { date: "2025-11-04", topic: "বিষয়..." },
+                { date: "2025-11-06", topic: "বিষয়..." },
+                { date: "2025-11-08", topic: "বিষয়..." },
+                { date: "2025-11-11", topic: "বিষয়..." },
+                { date: "2025-11-13", topic: "বিষয়..." },
+                { date: "2025-11-15", topic: "বিষয়..." },
+                { date: "2025-11-18", topic: "বিষয়..." },
+                { date: "2025-11-20", topic: "বিষয়..." },
+                { date: "2025-11-22", topic: "বিষয়..." },
+                { date: "2025-11-25", topic: "বিষয়..." },
+                { date: "2025-11-27", topic: "বিষয়..." },
+                { date: "2025-11-29", topic: "বিষয়..." },
+                // December 2025
+                { date: "2025-12-02", topic: "বিষয়..." },
+                { date: "2025-12-04", topic: "বিষয়..." },
+                { date: "2025-12-06", topic: "বিষয়..." },
+                { date: "2025-12-09", topic: "বিষয়..." },
+                { date: "2025-12-11", topic: "বিষয়..." },
+                { date: "2025-12-13", topic: "বিষয়..." },
+                { date: "2025-12-16", topic: "বিষয়..." },
+                { date: "2025-12-18", topic: "বিষয়..." },
+                { date: "2025-12-20", topic: "বিষয়..." },
+                { date: "2025-12-23", topic: "বিষয়..." },
+                { date: "2025-12-25", topic: "বিষয়..." },
+                { date: "2025-12-27", topic: "বিষয়..." },
+                { date: "2025-12-30", topic: "বিষয়..." }
+            ],
+            "Group 3": [
+                // October 2025
+                { date: "2025-10-18", topic: "বিষয়..." },
+                { date: "2025-10-21", topic: "বিষয়..." },
+                { date: "2025-10-23", topic: "বিষয়..." },
+                { date: "2025-10-25", topic: "বিষয়..." },
+                { date: "2025-10-28", topic: "বিষয়..." },
+                { date: "2025-10-30", topic: "বিষয়..." },
+                // November 2025
+                { date: "2025-11-01", topic: "বিষয়..." },
+                { date: "2025-11-04", topic: "বিষয়..." },
+                { date: "2025-11-06", topic: "বিষয়..." },
+                { date: "2025-11-08", topic: "বিষয়..." },
+                { date: "2025-11-11", topic: "বিষয়..." },
+                { date: "2025-11-13", topic: "বিষয়..." },
+                { date: "2025-11-15", topic: "বিষয়..." },
+                { date: "2025-11-18", topic: "বিষয়..." },
+                { date: "2025-11-20", topic: "বিষয়..." },
+                { date: "2025-11-22", topic: "বিষয়..." },
+                { date: "2025-11-25", topic: "বিষয়..." },
+                { date: "2025-11-27", topic: "বিষয়..." },
+                { date: "2025-11-29", topic: "বিষয়..." },
+                // December 2025
+                { date: "2025-12-02", topic: "বিষয়..." },
+                { date: "2025-12-04", topic: "বিষয়..." },
+                { date: "2025-12-06", topic: "বিষয়..." },
+                { date: "2025-12-09", topic: "বিষয়..." },
+                { date: "2025-12-11", topic: "বিষয়..." },
+                { date: "2025-12-13", topic: "বিষয়..." },
+                { date: "2025-12-16", topic: "বিষয়..." },
+                { date: "2025-12-18", topic: "বিষয়..." },
+                { date: "2025-12-20", topic: "বিষয়..." },
+                { date: "2025-12-23", topic: "বিষয়..." },
+                { date: "2025-12-25", topic: "বিষয়..." },
+                { date: "2025-12-27", topic: "বিষয়..." },
+                { date: "2025-12-30", topic: "বিষয়..." }
+            ]
+        };
+
+        // ২. প্রতিটি গ্রুপের জন্য আলাদা আলাদা বার্ষিক স্ট্র্যাটেজি যোগ করুন
+        const strategyData = {
+            "The Study Circle": {
+                title: "Group 1 - Foundation Strategy",
+                plan: {
+                    "জানুয়ারি - মার্চ": ["সিলেবাস বোঝা এবং বেসিক ধারণা তৈরি।", "প্রতিটি বিষয়ের সহজ অধ্যায়গুলি শেষ করা।"],
+                    "এপ্রিল - জুন": ["কঠিন অধ্যায় শুরু করা এবং বিষয়-ভিত্তিক মক টেস্ট দেওয়া।"],
+                    "জুলাই - সেপ্টেম্বর": ["সম্পূর্ণ সিলেবাস রিভিশন এবং আগের বছরের প্রশ্নপত্র সমাধান।"],
+                    "অক্টোবর - ডিসেম্বর": ["ফাইনাল রিভিশন এবং প্রতিদিন ফুল-লেংথ মক টেস্ট দেওয়া।"]
+                }
+            },
+            "সাফল্যের সিঁড়ি": {
+                title: "Group 2 - Advanced Strategy",
+                plan: {
+                    "জানুয়ারি - মার্চ": ["দ্রুত রিভিশন এবং কঠিন বিষয়ের ওপর জোর দেওয়া।", "Topic-wise advanced level প্রশ্ন সমাধান।"],
+                    "এপ্রিল - জুন": ["নিয়মিত ফুল-লেংথ মক টেস্ট এবং সময় পরিচালনা (Time Management) অভ্যাস।"],
+                    "জুলাই - সেপ্টেম্বর": ["ভুল বিশ্লেষণ (Error Analysis) এবং দুর্বল জায়গাগুলি মেরামত করা।"],
+                    "অক্টোবর - ডিসেম্বর": ["শুধুমাত্র মক টেস্ট এবং কারেন্ট অ্যাফেয়ার্স এর ফাইনাল রিভিশন।"]
+                }
+            },
+            "Group 3": {
+                title: "Group 3 - Mains Specific Strategy",
+                plan: {
+                    "জানুয়ারি - মার্চ": ["Mains পরীক্ষার সিলেবাস এবং Descriptive পেপারের প্রস্তুতি শুরু।"],
+                    "এপ্রিল - জুন": ["Writing practice (যেমন Essay, Precis) এবং Optional বিষয়ের ওপর জোর।"],
+                    "জুলাই - সেপ্টেম্বর": ["Prelims এবং Mains এর সিলেবাস একসাথে রিভিশন।"],
+                    "অক্টোবর - ডিসেম্বর": ["উভয় পরীক্ষার জন্য সমন্বিত (Integrated) মক টেস্ট।"]
+                }
+            }
+        };
+        // --- ডেটা সেকশন শেষ ---
+        
+
+        const groupSelectionView = document.getElementById('group-selection');
+        const scheduleView = document.getElementById('schedule-view');
+        const groupTitle = document.getElementById('group-title');
+        const calendarGrid = document.getElementById('calendar-grid');
+        const currentMonthYearSpan = document.getElementById('current-month-year');
+        const modal = document.getElementById('strategy-modal');
+        
+        let currentGroup = '';
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        
+        function renderCalendar(month, year) {
+            calendarGrid.innerHTML = '';
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            currentMonthYearSpan.textContent = new Date(year, month).toLocaleDateString('bn-BD', { month: 'long', year: 'numeric' });
+            const dayNames = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'];
+            dayNames.forEach(day => { const el = document.createElement('div'); el.className = 'day-name'; el.textContent = day; calendarGrid.appendChild(el); });
+            for (let i = 0; i < firstDay; i++) { calendarGrid.appendChild(document.createElement('div')).className = 'calendar-day empty'; }
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const groupSchedule = scheduleData[currentGroup] || [];
+            const groupEvents = groupSchedule.reduce((acc, event) => ({...acc, [event.date]: event.topic}), {});
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                dayCell.innerHTML = `<span class="day-number">${day}</span>`;
+                const date = new Date(year, month, day); date.setHours(0, 0, 0, 0);
+                if (date.getTime() === today.getTime()) { dayCell.classList.add('today'); }
+                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                if (groupEvents[dateString]) {
+                    dayCell.classList.add('has-event', date < today ? 'past-event' : 'future-event');
+                    dayCell.onclick = () => alert(`তারিখ: ${date.toLocaleDateString('bn-BD')}\nবিষয়: ${groupEvents[dateString]}`);
+                }
+                calendarGrid.appendChild(dayCell);
+            }
+        }
+        function changeMonth(offset) {
+            currentMonth += offset;
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; } 
+            else if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            renderCalendar(currentMonth, currentYear);
+        }
+        function showGroupSchedule(groupName) {
+            currentGroup = groupName;
+            groupSelectionView.style.display = 'none'; scheduleView.style.display = 'block';
+            groupTitle.textContent = `${groupName} - স্টাডি ক্যালেন্ডার`;
+            renderCalendar(currentMonth, currentYear);
+        }
+        function showGroupSelection() { scheduleView.style.display = 'none'; groupSelectionView.style.display = 'block'; }
+        
+        function openStrategyModal() {
+            const groupStrategy = strategyData[currentGroup];
+            if (!groupStrategy) { alert("এই গ্রুপের জন্য কোনো স্ট্র্যাটেজি পাওয়া যায়নি।"); return; }
+            const container = document.getElementById('strategy-content-container');
+            container.innerHTML = '';
+            document.getElementById('strategy-modal-title').textContent = groupStrategy.title;
+            for (const monthRange in groupStrategy.plan) {
+                const section = document.createElement('div');
+                let listItems = groupStrategy.plan[monthRange].map(item => `<li>${item}</li>`).join('');
+                section.innerHTML = `<h3>${monthRange}</h3><ul>${listItems}</ul>`;
+                container.appendChild(section);
+            }
+            modal.style.display = "block";
+        }
+        function closeStrategyModal() { modal.style.display = "none"; }
+        window.onclick = function(event) { if (event.target == modal) { closeStrategyModal(); } }
+
+        function initialize() {
+            Object.keys(scheduleData).forEach(name => {
+                const button = document.createElement('button');
+                button.className = 'group-button'; button.textContent = name;
+                button.onclick = () => showGroupSchedule(name);
+                groupSelectionView.appendChild(button);
+            });
+            document.getElementById('prev-month').onclick = () => changeMonth(-1);
+            document.getElementById('next-month').onclick = () => changeMonth(1);
+        }
+        initialize();
+    </script>
+</body>
+</html>
