@@ -199,12 +199,9 @@
 
     <script>
         // --- গ্লোবাল ভেরিয়েবল ---
-        
-        // এটি আপনার schedule.json ফাইলের সঠিক লিঙ্ক। এটি পরিবর্তন করার দরকার নেই।
         const dataUrl = 'schedule.json'; 
-
-        let allScheduleData = {}; // সমস্ত রুটিন ডেটা এখানে লোড হবে
-        let allStrategyData = {}; // সমস্ত স্ট্র্যাটেজি ডেটা এখানে লোড হবে
+        let allScheduleData = {};
+        let allStrategyData = {};
 
         // --- DOM এলিমেন্ট ---
         const groupSelectionView = document.getElementById('group-selection');
@@ -337,7 +334,6 @@
         async function initialize() {
             try {
                 // নেটওয়ার্ক থেকে ডেটা লোড করুন
-                // cache: 'no-cache' যোগ করা হলো যাতে সব সময় নতুন ডেটা আসে
                 const response = await fetch(`${dataUrl}?v=${new Date().getTime()}`, { cache: 'no-cache' });
                 if (!response.ok) {
                     throw new Error('ডেটা ফাইল লোড করা যায়নি।');
@@ -348,7 +344,7 @@
                 allStrategyData = data.strategyData;
                 
                 // গ্রুপ বাটন তৈরি করুন
-                groupSelectionView.innerHTML = '<h1>আপনার গ্রুপ বেছে নিন</h1>'; // পুরনো বাটন পরিষ্কার করুন
+                groupSelectionView.innerHTML = '<h1>আপনার গ্রুপ বেছে নিন</h1>'; 
                 Object.keys(allScheduleData).forEach(name => {
                     const button = document.createElement('button');
                     button.className = 'group-button'; 
@@ -363,7 +359,7 @@
             }
 
             // *** ঠিক করা অংশ ***
-            // শুধুমাত্র যে বাটনগুলির HTML-এ "onclick" নেই, সেগুলিকেই এখানে যোগ করা হলো
+            // শুধুমাত্র যে বাটনগুলির HTML-এ "onclick" নেই, সেগুলিকে এখানে যোগ করা হলো
             document.getElementById('prev-month').onclick = () => changeMonth(-1);
             document.getElementById('next-month').onclick = () => changeMonth(1);
             
