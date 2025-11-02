@@ -197,7 +197,6 @@
             </div>
     </div>
 
-
     <script>
         // --- গ্লোবাল ভেরিয়েবল ---
         
@@ -363,15 +362,11 @@
                 groupSelectionView.innerHTML = `<h1>ডেটা লোড করতে সমস্যা হয়েছে।</h1><p>দয়া করে আপনার '${dataUrl}' ফাইলের লিঙ্কটি ঠিক আছে কিনা দেখুন এবং ইন্টারনেট সংযোগ পরীক্ষা করুন।</p>`;
             }
 
-            // ইভেন্ট লিসেনার যোগ করুন
+            // শুধুমাত্র যে বাটনগুলির HTML-এ "onclick" নেই, সেগুলিকেই এখানে যোগ করা হলো
             document.getElementById('prev-month').onclick = () => changeMonth(-1);
             document.getElementById('next-month').onclick = () => changeMonth(1);
             
-            // ব্যাক বাটনের জন্য (যেহেতু এটি HTML এ আগে থেকেই আছে)
-            document.querySelector('.back-button').onclick = showGroupSelection;
-            document.querySelector('.strategy-button').onclick = openStrategyModal;
-            document.querySelector('.close-button').onclick = closeStrategyModal;
-            document.querySelectorAll('.close-button')[1].onclick = closeTopicModal;
+            // যে বাটনগুলির HTML-এ "onclick" আছে, সেগুলিকে আর এখানে যোগ করার দরকার নেই।
         }
 
         // অ্যাপলিকেশন শুরু করুন
